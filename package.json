@@ -1,0 +1,18 @@
+{
+  "scripts": {
+    "dev": "vite",
+    "dev:client": "vite",
+    "dev:server": "npm run dev --prefix server",
+    "build": "vite build",
+    "preview": "vite preview"
+  },
+  "dependencies": {
+    "@supabase/supabase-js": "^2.105.2",
+    "@vitejs/plugin-react": "latest",
+    "lucide-react": "^1.14.0",
+    "react": "latest",
+    "react-dom": "latest",
+    "recharts": "^3.8.1",
+    "vite": "latest"
+  }
+}
