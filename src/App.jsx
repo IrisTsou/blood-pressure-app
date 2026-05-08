@@ -277,8 +277,11 @@ function App() {
   async function handleSendPendingLineNotifications() {
     try {
       const result = await sendPendingLineNotifications(selectedPatientId, session.access_token);
+      const errorSummary = result.failedCount > 0 ? `，${result.failedCount} 筆失敗` : "";
 
-      setErrorMessage(`LINE 發送完成：${result.sentCount} 筆已送出`);
+      setErrorMessage(
+        `LINE 發送完成：${result.sentCount} 筆已送出${errorSummary}，待通知 ${result.pendingCount} 筆，綁定對象 ${result.bindingCount} 個`
+      );
     } catch (error) {
       setErrorMessage(error.message);
     }

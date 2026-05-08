@@ -1,6 +1,7 @@
 import express from "express";
 import { requireRecordAccess } from "./accessControl.js";
 import { requireAuth } from "./authMiddleware.js";
+import { sendLineNotificationEvent } from "./lineNotifications.js";
 import { createAlertEventForRecord } from "./notificationEvents.js";
 import { toClientRecord, toCreateDatabaseRecord, toDatabaseRecord } from "./recordMapper.js";
 import { supabase } from "./supabaseClient.js";
@@ -95,7 +96,15 @@ router.post("/", async (request, response, next) => {
       return response.status(500).json({ error: error.message });
     }
 
-    await createAlertEventForRecord(data);
+    const alertEvent = await createAlertEventForRecord(data);
+
+    if (alertEvent) {
+      const lineResult = await sendLineNotificationEvent(alertEvent);
+
+      if (!lineResult.sent) {
+        console.error(`Automatic LINE notification failed: ${lineResult.error}`);
+      }
+    }
 
     return response.status(201).json(toClientRecord(data));
   } catch (error) {

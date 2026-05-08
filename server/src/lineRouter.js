@@ -2,6 +2,7 @@ import express from "express";
 import { requireRecordAccess } from "./accessControl.js";
 import { requireAuth } from "./authMiddleware.js";
 import { pushLineMessage, verifyLineSignature } from "./lineClient.js";
+import { sendLineNotificationEvent } from "./lineNotifications.js";
 import { supabase } from "./supabaseClient.js";
 
 export const lineWebhookRouter = express.Router();
@@ -141,7 +142,7 @@ lineApiRouter.post("/binding-code", async (request, response, next) => {
     return response.status(201).json({
       code: data.code,
       expiresAt: data.expires_at,
-      instruction: `請在 LINE 群組輸入：綁定 ${data.code}`,
+      instruction: `請在 LINE 聊天室輸入：綁定 ${data.code}`,
     });
   } catch (error) {
     return next(error);
@@ -164,35 +165,31 @@ lineApiRouter.post("/send-pending", async (request, response, next) => {
       return response.status(500).json({ error: eventsError.message });
     }
 
-    const { data: bindings, error: bindingsError } = await supabase
-      .from("line_bindings")
-      .select("target_id")
-      .eq("patient_id", request.params.patientId)
-      .eq("status", "active");
-
-    if (bindingsError) {
-      return response.status(500).json({ error: bindingsError.message });
-    }
-
     let sentCount = 0;
+    let failedCount = 0;
+    let bindingCount = 0;
+    const errors = [];
 
     for (const event of events) {
-      try {
-        await Promise.all(bindings.map((binding) => pushLineMessage(binding.target_id, event.message)));
-        await supabase
-          .from("notification_events")
-          .update({ status: "sent", sent_at: new Date().toISOString() })
-          .eq("id", event.id);
+      const result = await sendLineNotificationEvent(event);
+
+      bindingCount = Math.max(bindingCount, result.bindingCount);
+
+      if (result.sent) {
         sentCount += 1;
-      } catch (error) {
-        await supabase
-          .from("notification_events")
-          .update({ status: "failed" })
-          .eq("id", event.id);
+      } else {
+        failedCount += 1;
+        errors.push(result.error);
       }
     }
 
-    return response.json({ sentCount, pendingCount: events.length });
+    return response.json({
+      sentCount,
+      failedCount,
+      pendingCount: events.length,
+      bindingCount,
+      errors,
+    });
   } catch (error) {
     return next(error);
   }
