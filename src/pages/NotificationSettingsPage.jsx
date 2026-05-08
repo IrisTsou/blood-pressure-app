@@ -107,8 +107,8 @@ function NotificationSettingsPage({
 
       {canEdit && (
         <section className="line-binding-panel">
-          <h2>LINE 群組綁定</h2>
-          <p>把 LINE bot 加進群組後，產生綁定碼，並在群組輸入指令完成綁定。</p>
+          <h2>LINE 綁定</h2>
+          <p>加入 LINE bot 好友，或把 bot 加進群組後，產生綁定碼，並在聊天室輸入指令完成綁定。</p>
 
           {lineBindingCode && (
             <div className="binding-code-box">

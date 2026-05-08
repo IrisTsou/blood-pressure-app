@@ -1,10 +1,20 @@
+const apiBaseUrl = (import.meta.env.VITE_API_BASE_URL ?? "").replace(/\/$/, "");
+
 export function createAuthHeaders(accessToken) {
   return accessToken ? { Authorization: `Bearer ${accessToken}` } : {};
 }
 
+function buildApiUrl(url) {
+  if (!apiBaseUrl || /^https?:\/\//i.test(url)) {
+    return url;
+  }
+
+  return `${apiBaseUrl}${url}`;
+}
+
 export async function requestJson(url, options = {}) {
   const { headers, ...requestOptions } = options;
-  const response = await fetch(url, {
+  const response = await fetch(buildApiUrl(url), {
     ...requestOptions,
     headers: {
       "Content-Type": "application/json",

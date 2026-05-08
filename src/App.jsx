@@ -330,6 +330,8 @@ function App() {
   return (
     <AppShell
       canManageMembers={Boolean(selectedPermissions.canManageMembers)}
+      onOpenToday={() => setCurrentView("summary")}
+      onOpenHistory={() => setCurrentView("history")}
       onAddPatient={() => setCurrentView("patient-form")}
       onManageMembers={() => setCurrentView("members")}
       onOpenNotificationSettings={handleLoadNotificationSettings}

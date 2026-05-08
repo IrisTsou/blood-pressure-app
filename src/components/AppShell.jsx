@@ -1,5 +1,7 @@
 import {
   Bell,
+  CalendarDays,
+  ClipboardList,
   LogOut,
   Menu,
   User,
@@ -12,6 +14,8 @@ import { useState } from "react";
 function AppShell({
   children,
   canManageMembers,
+  onOpenToday,
+  onOpenHistory,
   onAddPatient,
   onManageMembers,
   onOpenNotificationSettings,
@@ -69,6 +73,18 @@ function AppShell({
       )}
 
       <aside className={`sidebar ${isSidebarOpen ? "is-open" : ""}`}>
+        <section>
+          <p className="sidebar-section-title">主要功能</p>
+          <button type="button" onClick={() => handleNavigate(onOpenToday)}>
+            <CalendarDays size={22} />
+            今日紀錄
+          </button>
+          <button type="button" onClick={() => handleNavigate(onOpenHistory)}>
+            <ClipboardList size={22} />
+            歷史紀錄
+          </button>
+        </section>
+
         <section>
           <p className="sidebar-section-title">照護管理</p>
           <button type="button" onClick={() => handleNavigate(onAddPatient)}>

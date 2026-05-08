@@ -11,7 +11,7 @@ function generateBindingCode() {
   return Math.random().toString(36).slice(2, 8).toUpperCase();
 }
 
-async function bindGroupToPatient(code, groupId) {
+async function bindLineTargetToPatient(code, target) {
   const now = new Date().toISOString();
   const { data: bindingCode, error: codeError } = await supabase
     .from("line_binding_codes")
@@ -32,9 +32,9 @@ async function bindGroupToPatient(code, groupId) {
     .upsert(
       {
         patient_id: bindingCode.patient_id,
-        target_type: "group",
-        target_id: groupId,
-        display_name: "LINE 群組",
+        target_type: target.type,
+        target_id: target.id,
+        display_name: target.displayName,
         status: "active",
         updated_at: now,
       },
@@ -59,6 +59,26 @@ async function bindGroupToPatient(code, groupId) {
   return true;
 }
 
+function getLineTarget(source) {
+  if (source?.groupId) {
+    return {
+      type: "group",
+      id: source.groupId,
+      displayName: "LINE 群組",
+    };
+  }
+
+  if (source?.userId) {
+    return {
+      type: "user",
+      id: source.userId,
+      displayName: "個人 LINE",
+    };
+  }
+
+  return null;
+}
+
 lineWebhookRouter.post(
   "/webhook",
   express.raw({ type: "application/json" }),
@@ -74,15 +94,15 @@ lineWebhookRouter.post(
 
       for (const event of payload.events ?? []) {
         const text = event.message?.type === "text" ? event.message.text.trim() : "";
-        const groupId = event.source?.groupId;
+        const target = getLineTarget(event.source);
         const matchedCode = text.match(/^綁定\s+([A-Z0-9]{6})$/i)?.[1]?.toUpperCase();
 
-        if (event.type === "message" && groupId && matchedCode) {
-          const isBound = await bindGroupToPatient(matchedCode, groupId);
+        if (event.type === "message" && target && matchedCode) {
+          const isBound = await bindLineTargetToPatient(matchedCode, target);
 
           await pushLineMessage(
-            groupId,
-            isBound ? "LINE 群組綁定完成，之後會接收異常血壓通知。" : "綁定碼無效或已過期，請回網站重新產生。"
+            target.id,
+            isBound ? "LINE 綁定完成，之後會接收異常血壓通知。" : "綁定碼無效或已過期，請回網站重新產生。"
           );
         }
       }
@@ -148,7 +168,6 @@ lineApiRouter.post("/send-pending", async (request, response, next) => {
       .from("line_bindings")
       .select("target_id")
       .eq("patient_id", request.params.patientId)
-      .eq("target_type", "group")
       .eq("status", "active");
 
     if (bindingsError) {
