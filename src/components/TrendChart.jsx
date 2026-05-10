@@ -25,9 +25,79 @@ function prepareChartData(records) {
     }));
 }
 
+function prepareThresholdLines(thresholds) {
+  const thresholdGroups = new Map();
+  const thresholdItems = [
+    {
+      value: thresholds.highSystolic,
+      label: "收縮壓偏高",
+      labelStroke: "#c2410c",
+      stroke: "#c2410c",
+      strokeDasharray: "6 6",
+    },
+    {
+      value: thresholds.highDiastolic,
+      label: "舒張壓偏高",
+      labelStroke: "#c2410c",
+      stroke: "#c2410c",
+      strokeDasharray: "3 6",
+    },
+    {
+      value: thresholds.lowSystolic,
+      label: "收縮壓偏低",
+      labelStroke: "#2563eb",
+      stroke: "#2563eb",
+      strokeDasharray: "6 6",
+    },
+    {
+      value: thresholds.lowDiastolic,
+      label: "舒張壓偏低",
+      labelStroke: "#2563eb",
+      stroke: "#2563eb",
+      strokeDasharray: "3 6",
+    },
+  ];
+
+  for (const item of thresholdItems) {
+    const currentGroup = thresholdGroups.get(item.value) ?? {
+      value: item.value,
+      labels: [],
+      stroke: item.stroke,
+      strokeDasharray: item.strokeDasharray,
+    };
+
+    currentGroup.labels.push({
+      text: item.label,
+      stroke: item.labelStroke,
+    });
+    thresholdGroups.set(item.value, currentGroup);
+  }
+
+  return Array.from(thresholdGroups.values()).map((group) => ({
+    ...group,
+  }));
+}
+
+function ThresholdLineLabel({ viewBox, labels }) {
+  const lineHeight = 16;
+  const x = viewBox.x + viewBox.width + 10;
+  const y = viewBox.y - ((labels.length - 1) * lineHeight) / 2;
+
+  return (
+    <text x={x} y={y} fontSize={13} fontWeight={700}>
+      {labels.map((label, index) => (
+        <tspan key={label.text} x={x} dy={index === 0 ? 0 : lineHeight} fill={label.stroke}>
+          {label.text}
+        </tspan>
+      ))}
+    </text>
+  );
+}
+
 function TrendChart({ records, notificationSettings }) {
   const chartData = prepareChartData(records);
   const thresholds = normalizeBloodPressureThresholds(notificationSettings);
+  const thresholdLines = prepareThresholdLines(thresholds);
 
   if (chartData.length < 2) {
     return (
@@ -43,7 +113,7 @@ function TrendChart({ records, notificationSettings }) {
       <h2>血壓趨勢</h2>
       <div className="chart-wrapper" aria-label="收縮壓與舒張壓折線圖">
         <ResponsiveContainer width="100%" height="100%">
-          <LineChart data={chartData} margin={{ top: 16, right: 24, left: 0, bottom: 8 }}>
+          <LineChart data={chartData} margin={{ top: 16, right: 80, left: 0, bottom: 8 }}>
             <CartesianGrid stroke="#d9e2ec" strokeDasharray="4 4" />
             <XAxis dataKey="label" tick={{ fill: "#52606d", fontSize: 14 }} />
             <YAxis
@@ -53,30 +123,22 @@ function TrendChart({ records, notificationSettings }) {
             />
             <Tooltip />
             <Legend />
-            <ReferenceLine
-              y={thresholds.highSystolic}
-              label="收縮壓偏高"
-              stroke="#c2410c"
-              strokeDasharray="6 6"
-            />
-            <ReferenceLine
-              y={thresholds.highDiastolic}
-              label="舒張壓偏高"
-              stroke="#c2410c"
-              strokeDasharray="3 6"
-            />
-            <ReferenceLine
-              y={thresholds.lowSystolic}
-              label="收縮壓偏低"
-              stroke="#2563eb"
-              strokeDasharray="6 6"
-            />
-            <ReferenceLine
-              y={thresholds.lowDiastolic}
-              label="舒張壓偏低"
-              stroke="#2563eb"
-              strokeDasharray="3 6"
-            />
+            {thresholdLines.map((line) => (
+              <ReferenceLine
+                key={`${line.value}-${line.labels.map((label) => label.text).join("-")}`}
+                y={line.value}
+                label={{
+                  content: (props) => (
+                    <ThresholdLineLabel
+                      {...props}
+                      labels={line.labels}
+                    />
+                  ),
+                }}
+                stroke={line.stroke}
+                strokeDasharray={line.strokeDasharray}
+              />
+            ))}
             <Line
               type="monotone"
               dataKey="systolic"

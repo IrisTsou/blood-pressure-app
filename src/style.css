@@ -314,6 +314,32 @@ button:hover {
   padding: 20px;
 }
 
+.member-page-header {
+  display: flex;
+  align-items: flex-start;
+  justify-content: space-between;
+  gap: 16px;
+  margin-bottom: 20px;
+}
+
+.member-page-header h1 {
+  margin-bottom: 0;
+}
+
+.add-member-button {
+  display: inline-flex;
+  align-items: center;
+  justify-content: center;
+  gap: 8px;
+  flex: 0 0 auto;
+  width: auto;
+  min-height: 52px;
+  margin-top: 20px;
+  padding: 0 18px;
+  font-size: 18px;
+  white-space: nowrap;
+}
+
 .permission-grid {
   display: grid;
   grid-template-columns: repeat(auto-fit, minmax(180px, 1fr));

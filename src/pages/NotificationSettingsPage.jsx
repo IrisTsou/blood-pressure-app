@@ -1,4 +1,15 @@
-import { useState } from "react";
+import { useEffect, useState } from "react";
+
+function getInitialFormData(settings) {
+  return {
+    highSystolic: settings?.highSystolic ?? 140,
+    highDiastolic: settings?.highDiastolic ?? 90,
+    lowSystolic: settings?.lowSystolic ?? 90,
+    lowDiastolic: settings?.lowDiastolic ?? 60,
+    dailySummaryEnabled: settings?.dailySummaryEnabled ?? false,
+    dailySummaryTime: settings?.dailySummaryTime ?? "21:00",
+  };
+}
 
 function NotificationSettingsPage({
   patient,
@@ -10,14 +21,11 @@ function NotificationSettingsPage({
   onSendPendingLineNotifications,
   onBack,
 }) {
-  const [formData, setFormData] = useState({
-    highSystolic: settings?.highSystolic ?? 140,
-    highDiastolic: settings?.highDiastolic ?? 90,
-    lowSystolic: settings?.lowSystolic ?? 90,
-    lowDiastolic: settings?.lowDiastolic ?? 60,
-    dailySummaryEnabled: settings?.dailySummaryEnabled ?? false,
-    dailySummaryTime: settings?.dailySummaryTime ?? "21:00",
-  });
+  const [formData, setFormData] = useState(() => getInitialFormData(settings));
+
+  useEffect(() => {
+    setFormData(getInitialFormData(settings));
+  }, [settings]);
 
   function updateField(field, value) {
     setFormData({

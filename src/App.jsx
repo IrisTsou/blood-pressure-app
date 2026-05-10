@@ -1,4 +1,4 @@
-import { useEffect, useState } from "react";
+import { useCallback, useEffect, useRef, useState } from "react";
 import {
   createRecord,
   deleteRecord,
@@ -52,20 +52,49 @@ function App() {
   const [recordToEdit, setRecordToEdit] = useState(null);
   const [session, setSession] = useState(null);
   const [isLoading, setIsLoading] = useState(true);
+  const [isPatientsLoading, setIsPatientsLoading] = useState(false);
+  const [isRecordsLoading, setIsRecordsLoading] = useState(false);
+  const [recordsLoadedPatientId, setRecordsLoadedPatientId] = useState("");
   const [errorMessage, setErrorMessage] = useState("");
+  const sessionUserIdRef = useRef(null);
   const latestRecord = records[0];
+
+  useEffect(() => {
+    function preventNumberInputWheelChange(event) {
+      if (event.target instanceof HTMLInputElement && event.target.type === "number") {
+        event.target.blur();
+      }
+    }
+
+    window.addEventListener("wheel", preventNumberInputWheelChange, { capture: true });
+
+    return () => {
+      window.removeEventListener("wheel", preventNumberInputWheelChange, { capture: true });
+    };
+  }, []);
 
   useEffect(() => {
     async function loadSession() {
       const { data } = await supabaseAuth.auth.getSession();
 
+      sessionUserIdRef.current = data.session?.user?.id ?? null;
+      setIsPatientsLoading(Boolean(data.session));
       setSession(data.session);
       setIsLoading(false);
     }
 
     const { data: authListener } = supabaseAuth.auth.onAuthStateChange(
-      (_event, nextSession) => {
+      (event, nextSession) => {
+        const currentUserId = sessionUserIdRef.current;
+        const nextUserId = nextSession?.user?.id;
+
+        sessionUserIdRef.current = nextUserId ?? null;
         setSession(nextSession);
+
+        if (currentUserId && currentUserId === nextUserId) {
+          return;
+        }
+
         setRecords([]);
         setPatients([]);
         setMembers([]);
@@ -73,6 +102,9 @@ function App() {
         setLineBindingCode(null);
         setProfile(null);
         setSelectedPatientId("");
+        setIsPatientsLoading(Boolean(nextSession));
+        setIsRecordsLoading(false);
+        setRecordsLoadedPatientId("");
         setCurrentView("summary");
         setRecordToEdit(null);
       }
@@ -91,6 +123,8 @@ function App() {
     }
 
     async function loadPatientsFromApi() {
+      setIsPatientsLoading(true);
+
       try {
         const [apiPatients, apiProfile] = await Promise.all([
           fetchAccessiblePatients(session.access_token),
@@ -103,34 +137,42 @@ function App() {
         setErrorMessage("");
       } catch (error) {
         setErrorMessage(error.message);
+      } finally {
+        setIsPatientsLoading(false);
       }
     }
 
     loadPatientsFromApi();
   }, [session?.access_token]);
 
-  useEffect(() => {
+  const loadRecordsAndSettings = useCallback(async () => {
     if (!session?.access_token || !selectedPatientId) {
       return;
     }
 
-    async function loadRecordsFromApi() {
-      try {
-        const [apiRecords, apiSettings] = await Promise.all([
-          fetchRecords(session.access_token, selectedPatientId),
-          fetchNotificationSettings(selectedPatientId, session.access_token),
-        ]);
+    setIsRecordsLoading(true);
 
-        setRecords(sortRecords(apiRecords));
-        setNotificationSettings(apiSettings);
-        setErrorMessage("");
-      } catch (error) {
-        setErrorMessage(error.message);
-      }
+    try {
+      const [apiRecords, apiSettings] = await Promise.all([
+        fetchRecords(session.access_token, selectedPatientId),
+        fetchNotificationSettings(selectedPatientId, session.access_token),
+      ]);
+
+      setRecords(sortRecords(apiRecords));
+      setNotificationSettings(apiSettings);
+      setRecordsLoadedPatientId(selectedPatientId);
+      setErrorMessage("");
+    } catch (error) {
+      setRecordsLoadedPatientId(selectedPatientId);
+      setErrorMessage(error.message);
+    } finally {
+      setIsRecordsLoading(false);
     }
-
-    loadRecordsFromApi();
   }, [session?.access_token, selectedPatientId]);
+
+  useEffect(() => {
+    loadRecordsAndSettings();
+  }, [loadRecordsAndSettings]);
 
   const selectedPatient = patients.find((patient) => patient.id === selectedPatientId);
   const selectedPermissions = selectedPatient?.permissions ?? {};
@@ -155,6 +197,7 @@ function App() {
       setPatients((currentPatients) => [...currentPatients, savedPatient]);
       setSelectedPatientId(savedPatient.id);
       setRecords([]);
+      setRecordsLoadedPatientId("");
       setErrorMessage("");
       setCurrentView("summary");
     } catch (error) {
@@ -174,7 +217,7 @@ function App() {
     }
   }
 
-  async function handleLoadMembers() {
+  const handleLoadMembers = useCallback(async () => {
     if (!selectedPatientId) {
       return;
     }
@@ -187,6 +230,14 @@ function App() {
     } catch (error) {
       setErrorMessage(error.message);
     }
+  }, [selectedPatientId, session?.access_token]);
+
+  function handleOpenToday() {
+    setCurrentView("summary");
+  }
+
+  function handleOpenHistory() {
+    setCurrentView("history");
   }
 
   async function handleCreateMember(member) {
@@ -330,11 +381,35 @@ function App() {
     return <AuthPage />;
   }
 
+  const isSelectedPatientDataLoading = selectedPatientId
+    && recordsLoadedPatientId !== selectedPatientId;
+
+  if (isPatientsLoading || isSelectedPatientDataLoading) {
+    return (
+      <AppShell
+        canManageMembers={false}
+        onOpenToday={() => setCurrentView("summary")}
+        onOpenHistory={() => setCurrentView("history")}
+        onAddPatient={() => setCurrentView("patient-form")}
+        onManageMembers={() => setCurrentView("members")}
+        onOpenNotificationSettings={handleLoadNotificationSettings}
+        onEditProfile={() => setCurrentView("profile")}
+        onSignOut={() => supabaseAuth.auth.signOut()}
+      >
+        <section className="summary-card">
+          <p className="eyebrow">資料載入中</p>
+          <h1>正在讀取血壓紀錄</h1>
+          <p className="status-description">請稍候，正在同步最新資料。</p>
+        </section>
+      </AppShell>
+    );
+  }
+
   return (
     <AppShell
       canManageMembers={Boolean(selectedPermissions.canManageMembers)}
-      onOpenToday={() => setCurrentView("summary")}
-      onOpenHistory={() => setCurrentView("history")}
+      onOpenToday={handleOpenToday}
+      onOpenHistory={handleOpenHistory}
       onAddPatient={() => setCurrentView("patient-form")}
       onManageMembers={() => setCurrentView("members")}
       onOpenNotificationSettings={handleLoadNotificationSettings}
@@ -352,6 +427,7 @@ function App() {
           onSelectPatient={(patientId) => {
             setSelectedPatientId(patientId);
             setRecords([]);
+            setRecordsLoadedPatientId("");
             setMembers([]);
             setNotificationSettings(null);
             setLineBindingCode(null);
