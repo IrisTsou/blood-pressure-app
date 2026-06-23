@@ -18,7 +18,6 @@ function NotificationSettingsPage({
   canEdit,
   onSave,
   onCreateLineBindingCode,
-  onSendPendingLineNotifications,
   onBack,
 }) {
   const [formData, setFormData] = useState(() => getInitialFormData(settings));
@@ -116,7 +115,6 @@ function NotificationSettingsPage({
       {canEdit && (
         <section className="line-binding-panel">
           <h2>LINE 綁定</h2>
-          <p>先加入 LINE bot 好友，或把 bot 加進群組後，再產生綁定碼並在聊天室輸入指令完成綁定。</p>
 
           <div className="line-binding-content">
             <div className="line-qr-card">
@@ -125,6 +123,8 @@ function NotificationSettingsPage({
             </div>
 
             <div className="line-binding-actions">
+              <p>先加入 LINE bot 好友，或把 bot 加進群組後，再產生綁定碼並在聊天室輸入指令完成綁定。</p>
+
               {lineBindingCode && (
                 <div className="binding-code-box">
                   <strong>{lineBindingCode.code}</strong>
@@ -135,13 +135,6 @@ function NotificationSettingsPage({
               <div className="button-row">
                 <button type="button" onClick={onCreateLineBindingCode}>
                   產生綁定碼
-                </button>
-                <button
-                  className="secondary-button"
-                  type="button"
-                  onClick={onSendPendingLineNotifications}
-                >
-                  發送待通知
                 </button>
               </div>
             </div>
