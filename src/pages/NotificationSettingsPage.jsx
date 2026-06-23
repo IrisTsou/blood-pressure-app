@@ -116,26 +116,35 @@ function NotificationSettingsPage({
       {canEdit && (
         <section className="line-binding-panel">
           <h2>LINE 綁定</h2>
-          <p>加入 LINE bot 好友，或把 bot 加進群組後，產生綁定碼，並在聊天室輸入指令完成綁定。</p>
+          <p>先加入 LINE bot 好友，或把 bot 加進群組後，再產生綁定碼並在聊天室輸入指令完成綁定。</p>
 
-          {lineBindingCode && (
-            <div className="binding-code-box">
-              <strong>{lineBindingCode.code}</strong>
-              <span>{lineBindingCode.instruction}</span>
+          <div className="line-binding-content">
+            <div className="line-qr-card">
+              <img src="/line-bot-qr.png" alt="LINE Bot 加入好友 QR Code" />
+              <span>掃描 QR Code 加入 LINE Bot</span>
             </div>
-          )}
 
-          <div className="button-row">
-            <button type="button" onClick={onCreateLineBindingCode}>
-              產生綁定碼
-            </button>
-            <button
-              className="secondary-button"
-              type="button"
-              onClick={onSendPendingLineNotifications}
-            >
-              發送待通知
-            </button>
+            <div className="line-binding-actions">
+              {lineBindingCode && (
+                <div className="binding-code-box">
+                  <strong>{lineBindingCode.code}</strong>
+                  <span>{lineBindingCode.instruction}</span>
+                </div>
+              )}
+
+              <div className="button-row">
+                <button type="button" onClick={onCreateLineBindingCode}>
+                  產生綁定碼
+                </button>
+                <button
+                  className="secondary-button"
+                  type="button"
+                  onClick={onSendPendingLineNotifications}
+                >
+                  發送待通知
+                </button>
+              </div>
+            </div>
           </div>
         </section>
       )}

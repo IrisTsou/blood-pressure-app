@@ -394,6 +394,42 @@ button:hover {
   line-height: 1.5;
 }
 
+.line-binding-content {
+  display: grid;
+  grid-template-columns: minmax(180px, 220px) 1fr;
+  gap: 18px;
+  align-items: start;
+}
+
+.line-qr-card {
+  display: grid;
+  gap: 10px;
+  justify-items: center;
+  border: 1px solid #d9e2ec;
+  border-radius: 8px;
+  background: #ffffff;
+  padding: 16px;
+  text-align: center;
+}
+
+.line-qr-card img {
+  width: min(100%, 180px);
+  aspect-ratio: 1;
+  object-fit: contain;
+}
+
+.line-qr-card span {
+  color: #334e68;
+  font-size: 16px;
+  font-weight: 700;
+  line-height: 1.4;
+}
+
+.line-binding-actions {
+  display: grid;
+  gap: 16px;
+}
+
 .binding-code-box {
   display: grid;
   gap: 6px;
@@ -620,6 +656,10 @@ tbody tr:last-child td {
   }
 
   .button-row {
+    grid-template-columns: 1fr;
+  }
+
+  .line-binding-content {
     grid-template-columns: 1fr;
   }
 }
